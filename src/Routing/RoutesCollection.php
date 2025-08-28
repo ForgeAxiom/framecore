@@ -3,8 +3,8 @@ declare(strict_types=1);
 
 namespace ForgeAxiom\Framecore\Routing;
 
-use \Exception;
-use \InvalidArgumentException;
+use ForgeAxiom\Framecore\Exceptions\FileNotExistsException;
+use ForgeAxiom\Framecore\Exceptions\InvalidConfigReturnException;
 
 /** 
  * Configuration Service. 
@@ -20,7 +20,8 @@ final class RoutesCollection
     private array $routes;
 
     /**
-     * @throws Exception If file does not exists.
+     * @throws FileNotExistsException If file does not exists.
+     * @throws InvalidConfigReturnException If returned invalid array from routes configuration.
      */
     public function __construct() {
         if (self::$routesCache === []) {
@@ -53,6 +54,9 @@ final class RoutesCollection
      *          }
      *      >
      * >
+     * 
+     * @throws FileNotExistsException
+     * @throws InvalidConfigReturnException
      */
     private function getAllRoutes(): array
     {
@@ -68,20 +72,20 @@ final class RoutesCollection
         return $routesAsAssoc;
     }
 
-    /** @throws \Exception */
+    /** @throws FileNotExistsException */
     private function failIfFileNotExists(string $path)
     {
         if (!file_exists($path)) {
-            throw new Exception("File app/Routes/routes.php does not exists. Tryed: '$path'");
+            throw new FileNotExistsException("File app/Routes/routes.php does not exists. Tryed: '$path'");
         }
     }
 
-    /** @throws \InvalidArgumentException */
+    /** @throws InvalidConfigReturnException */
     private function failIfRoutesNotInHttpMethod(array $routes)
     {
         foreach($routes as $httpMethod => $_) {
             if (!in_array($httpMethod, self::HTTP_METHODS)) {
-                throw new InvalidArgumentException(sprintf(
+                throw new InvalidConfigReturnException(sprintf(
                     "Array must contain only: %s Given: ",
                     implode(', ', self::HTTP_METHODS),
                     implode(', ', $routes)
@@ -90,7 +94,7 @@ final class RoutesCollection
         }
     }
     
-    /** @throws \InvalidArgumentException */
+    /** @throws InvalidConfigReturnException */
     private function failIfKeysNotUniq(array $array): void
     {
         if (count($array) === 0) {
@@ -100,8 +104,8 @@ final class RoutesCollection
         $keys = array_keys($array);
   
         if (!count($keys) === count($array)) {
-            throw new InvalidArgumentException(sprintf(
-                "Array must return only unique methods keys: %s. Given keys: %s",
+            throw new InvalidConfigReturnException(sprintf(
+                "Config array must return only unique methods keys: %s. Given keys: %s",
                 implode(', ', self::HTTP_METHODS),
                 implode(', ', $keys)
             ));
@@ -121,6 +125,7 @@ final class RoutesCollection
      *          }
      *      >
      * >
+     * @throws InvalidConfigReturnException If invalid routes key=>value format.
      */
     private function convertAllToAssoc(array $allRoutes)
     {
@@ -128,7 +133,7 @@ final class RoutesCollection
        
         foreach ($allRoutes as $httpMethod => $routesByMethod) {
             if (!is_array($routesByMethod[0])) {
-                throw new Exception(sprintf(
+                throw new InvalidConfigReturnException(sprintf(
                     'Invalid routes config format. %s => value must be array which contains routes. Now value is route.',
                     $httpMethod 
                 ));

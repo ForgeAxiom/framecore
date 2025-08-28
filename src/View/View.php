@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ForgeAxiom\Framecore\View;
 
-use Exception;
+use ForgeAxiom\Framecore\Exceptions\FileNotExistsException;
 
 /** 
  * Immutable Value Object. 
@@ -41,6 +41,6 @@ final class View
     
     private static function fallback(string $path): string
     {  
-       throw new Exception("View does not exists, given: $path"); 
+       throw new FileNotExistsException("View does not exists, given: $path"); 
     }
 }

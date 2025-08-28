@@ -7,8 +7,8 @@ namespace ForgeAxiom\Framecore\Routing;
 use ForgeAxiom\Framecore\Routing\Controller;
 use ForgeAxiom\Framecore\Routing\Response;
 use ForgeAxiom\Framecore\View\View;
-use \InvalidArgumentException;
 use \Exception;
+use ForgeAxiom\Framecore\Exceptions\InvalidConfigReturnException;
 
 /** 
  * Service. 
@@ -45,7 +45,7 @@ class Router
      * 
      * @return Response The final HTTP response.
      * 
-     * @throws InvalidArgumentException If a controller defined in routes configuration is not a valid instance of Controller.
+     * @throws InvalidConfigReturnException If a controller defined in routes configuration is not a valid instance of Controller.
      */
     public function handleUri(): Response 
     {
@@ -72,7 +72,7 @@ class Router
 
                     return $this->handleControllerResponse($controllerResponse);
                 } else {
-                    throw new InvalidArgumentException(
+                    throw new InvalidConfigReturnException(
                         'Only instanceof ForgeAxiom\Framecore\Routing\Controller, given: ' . $controllerClassName
                     );
                 }
