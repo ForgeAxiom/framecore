@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ForgeAxiom\Framecore\Routing;
 
+use ForgeAxiom\Framecore\Core\Container;
 use ForgeAxiom\Framecore\Routing\Controller;
 use ForgeAxiom\Framecore\Routing\Response;
 use ForgeAxiom\Framecore\View\View;
@@ -17,23 +18,19 @@ use ForgeAxiom\Framecore\Exceptions\InvalidConfigReturnException;
  */
 class Router
 {
-    private string $requestUri;
-    private string $httpMethod;
     private array $routes;
+    private Container $container;
 
     /**
-     * @param string $requestUri Client requested URI. 
-     * @param string $httpMethod Client requested HTTP method.
      * @param RoutesCollection $routesCollection Prepared routes collection.
+     * @param Container $container DI-container.
      */
     public function __construct(
-        string $requestUri, string $httpMethod, RoutesCollection $routesCollection
+        RoutesCollection $routesCollection,
+        Container $container
     ) {
-        $this->requestUri = $requestUri;
-
-        $this->httpMethod = trim(strtolower($httpMethod));
-
-        $this->routes = $routesCollection->getRoutes();
+        $this->container = $container;
+        $this->routes = $routesCollection->getRoutes();   
     }
 
     /**
@@ -47,11 +44,9 @@ class Router
      * 
      * @throws InvalidConfigReturnException If a controller defined in routes configuration is not a valid instance of Controller.
      */
-    public function handleUri(): Response 
+    public function handleUri(string $requestUri, string $httpMethod): Response 
     {
-        $requestUri = $this->requestUri;
-
-        $routesByRequestMethod = $this->getRoutesByRequestMethod();
+        $routesByRequestMethod = $this->getRoutesByRequestMethod($httpMethod);
 
         foreach ($routesByRequestMethod as $route) {
             $routeUri = $route['uri'];
@@ -61,7 +56,8 @@ class Router
             // If request uri IS matches with route uri
             if ($match['success'] === true) {
                 $controllerClassName = $route['controller'];
-                $controller = new $controllerClassName();
+
+                $controller = $this->container->get($controllerClassName);
                 
                 $controllerMethod = $route['controllerMethod'];
                 
@@ -98,9 +94,9 @@ class Router
      * > The array of routes with appropriate http method.
      * 
      */
-    private function getRoutesByRequestMethod(): array
+    private function getRoutesByRequestMethod($httpMethod): array
     {
-        $httpMethod = $this->httpMethod;
+        $httpMethod = trim(strtolower($httpMethod));
         switch ($httpMethod) {
             case 'get':
                 $routesByRequestMethod = isset($this->routes['get']) ? $this->routes['get'] : [];

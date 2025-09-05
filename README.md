@@ -64,12 +64,16 @@ If the route is not found, a 404 not found Response is generated.
 
 All kinds of controllers should extend the base `app\Controllers\Controller.php` class.
 
+#### index.php
+
+Before use Controller, it should be in [binding](#binding) in index.php 
+
+#### Method Returning
+
 A controller method can return **one** of types: 
 1. An instance of `'ForgeAxiom\Framecore\Routing\View'`
 2. An instance of `'ForgeAxiom\Framecore\Routing\Response'`
 3. `null`
-
-#### Method Returning
 
 ##### 1. View
 
@@ -140,6 +144,51 @@ File of 404 not found view must be placed on path:
 
 That view would be uses for 404 not found cases. 
 
+### Working with DI-container
+
+Manages and resolves service classes through **bindings**. It allows you to write **clean** and adhere to Single Responsibility Principle (**SRP**) classes by delegating creation and lifecycle management of services to the container.
+
+#### Binding
+
+**Binding** is a full class name (**ClassName::class**) with a **Closure**, with code of creation for **later creation** in `get` method.
+
+Two ways to make binding:
+
+##### 1. `bind` (Every time anew instances)
+
+Use `bind` method when you need to bind Class which would be creating **anew** instance **every time**.
+
+**Example:**
+```php
+// Instance of container always would be passed for resolving dependencies
+$container->bind(SiteController::class, function(Container $c) {
+    return new Router(
+        // First argument RoutesCollection
+        $c->get(RoutesCollection::class),
+        // Second argument DI-Container
+        $c
+    );
+});
+```
+
+##### 2. `singleton` (Shared instances)
+
+Use `singleton` method when you need to bind Class which would be **creating for once** and would be **storeged** for later use, like Database connection.
+
+**Example:**
+
+```php
+$container->singleton(Connection::class, function() {
+    return new Connection();
+});
+```
+
+##### Getting binded class
+
+```php
+$container->get(ClassName::class);
+```
+
 # Русский
 
 ## Что это?
@@ -205,6 +254,11 @@ return [
 1.  Экземпляр `'ForgeAxiom\Framecore\Routing\View'`
 2.  Экземпляр `'ForgeAxiom\Framecore\Routing\Response'`
 3.  `null`
+
+#### index.php
+
+До использования контроллера, его нужно [привязать](#привязка-binding)
+ in index.php 
 
 #### Возвращаемые значения
 
@@ -275,3 +329,48 @@ HTML;
 `app/Views/404.php`.
 
 Этот шаблон будет автоматически использоваться для всех случаев 404-й ошибки.
+
+### Работа с DI-container
+
+Управляет и разрешает зависимостями классов сервисов через привязки(**bindings**). Он позволяет писать **чисто** и придерживаться Принципу Единой Ответственности(**SRP**) во время проектирования своих сервисов с помощью делегирования создания и управления жизненным циклом сервисов контейнеру.
+
+#### Привязка (Binding)
+
+Привязка (**Binding**) это полное классовое имя (**ClassName::class**) с замыкающей(**Closure**), в которой описана инструкция по созданию класса, для **дальнейшего** поулчение через `get`.
+
+Есть два способа создания привязки(**binding**):
+
+##### 1. `bind` (Каждый раз новый экземпляр)
+
+Используйте метод `bind` когда необходимо привязать сервис, который будет создаваться все время по новой.
+
+**Пример использования:**
+```php
+// Всегда подается подается контейнер в замыкающую ф-ию, для разрешния зависимостей
+$container->bind(SiteController::class, function(Container $c) {
+    return new Router(
+        // First argument RoutesCollection
+        $c->get(RoutesCollection::class),
+        // Second argument DI-Container
+        $c
+    );
+});
+```
+
+##### 2. `singleton` (Общие/Разделенные экземпляры)
+
+Используйте метод `singleton` когда необходимо привязать сервис, который **создастся один раз** и будет **закэширован** для дальшейшего использования, например, подключение к базе данных.
+
+**Пример использования:**
+
+```php
+$container->singleton(Connection::class, function() {
+    return new Connection();
+});
+```
+
+##### Пример получения класса из контейнера
+
+```php
+$container->get(ClassName::class);
+```
