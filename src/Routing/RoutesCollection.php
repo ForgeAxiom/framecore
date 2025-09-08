@@ -67,21 +67,19 @@ final class RoutesCollection
         $this->failIfRoutesNotInHttpMethod($routes);
         $this->failIfKeysNotUniq($routes);
 
-        $routesAsAssoc = $this->convertAllToAssoc($routes);
-        
-        return $routesAsAssoc;
+        return $this->convertAllToAssoc($routes);
     }
 
     /** @throws FileNotExistsException */
-    private function failIfFileNotExists(string $path)
+    private function failIfFileNotExists(string $path): void
     {
         if (!file_exists($path)) {
-            throw new FileNotExistsException("File app/Routes/routes.php does not exists. Tryed: '$path'");
+            throw new FileNotExistsException("File app/Routes/routes.php does not exists. Tried: '$path'");
         }
     }
 
     /** @throws InvalidConfigReturnException */
-    private function failIfRoutesNotInHttpMethod(array $routes)
+    private function failIfRoutesNotInHttpMethod(array $routes): void
     {
         foreach($routes as $httpMethod => $_) {
             if (!in_array($httpMethod, self::HTTP_METHODS)) {

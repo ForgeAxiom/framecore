@@ -43,7 +43,7 @@ $container->bind(Router::class, function(Container $c) {
  * Framework output
  */
 
-$router = $container->get(Router::class, $requestUri, $requestMethod);
+$router = $container->get(Router::class);
 
 /** @var \ForgeAxiom\Framecore\Routing\Router $router */
 $response = $router->handleUri($requestUri, $requestMethod);

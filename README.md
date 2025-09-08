@@ -173,7 +173,7 @@ $container->bind(SiteController::class, function(Container $c) {
 
 ##### 2. `singleton` (Shared instances)
 
-Use `singleton` method when you need to bind Class which would be **creating for once** and would be **storeged** for later use, like Database connection.
+Use `singleton` method when you need to bind Class which would be **creating for once** and would be **stored** for later use, like Database connection.
 
 **Example:**
 
@@ -183,10 +183,27 @@ $container->singleton(Connection::class, function() {
 });
 ```
 
-##### Getting binded class
+#### Getting classes
+
+By default, not bound classes would be resolves **automatically**. 
 
 ```php
-$container->get(ClassName::class);
+$container->get(ClassName::class, true);
+```
+**Params:**
+1. Getting class name
+2. Auto resolving mode `(By default: true)`
+
+##### Auto singletons
+
+In `config/auto_singletons.php` you can put in returning array class names which would be created like [singleton](#2-singleton-shared-instances).
+
+**Example:**
+```php
+// config/auto_singletons.php
+return [
+    Connection::class,
+]
 ```
 
 # Русский
@@ -357,7 +374,7 @@ $container->bind(SiteController::class, function(Container $c) {
 });
 ```
 
-##### 2. `singleton` (Общие/Разделенные экземпляры)
+##### 2. `singleton` (Разделенные экземпляры)
 
 Используйте метод `singleton` когда необходимо привязать сервис, который **создастся один раз** и будет **закэширован** для дальшейшего использования, например, подключение к базе данных.
 
@@ -369,8 +386,25 @@ $container->singleton(Connection::class, function() {
 });
 ```
 
-##### Пример получения класса из контейнера
+#### Пример получения класса с помощью контейнера
+
+По умолчанию не привязанные классы разрешаются **автоматически**.
 
 ```php
-$container->get(ClassName::class);
+$container->get(ClassName::class, true);
+```
+**Params:**
+1. Getting class name
+2. Auto resolving mode `(By default: true)`
+
+##### Авто singletons
+
+В `config/auto_singletons.php` Вы можете написать названия своих классов, которые необходимо создавать как [singleton](#2-singleton-разделенные-экземпляры).
+
+**Пример:**
+```php
+// config/auto_singletons.php
+return [
+    Connection::class,
+]
 ```
