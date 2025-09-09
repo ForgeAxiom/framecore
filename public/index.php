@@ -9,6 +9,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 use ForgeAxiom\Framecore\Core\Container;
 use ForgeAxiom\Framecore\Routing\Router;
 use ForgeAxiom\Framecore\Routing\RoutesCollection;
+use function ForgeAxiom\Framecore\Helpers\dd; 
 
 
 $requestUri = $_SERVER['REQUEST_URI' ?? '/'];

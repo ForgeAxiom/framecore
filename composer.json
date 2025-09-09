@@ -6,7 +6,10 @@
         "psr-4": {
             "ForgeAxiom\\Framecore\\": "src/",
             "App\\": "app/"
-        }
+        },
+        "files": [
+            "src/Helpers/dd.php"
+        ]
     },
     "authors": [
         {
