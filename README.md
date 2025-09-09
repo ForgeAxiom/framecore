@@ -161,7 +161,7 @@ Use `bind` method when you need to bind Class which would be creating **anew** i
 
 **Example:**
 ```php
-// Instance of container always would be passed for resolving dependencies
+// Instance of container would always be passed for resolving dependencies
 $container->bind(SiteController::class, function(Container $c) {
     return new Router(
         // First argument RoutesCollection
@@ -207,10 +207,69 @@ return [
 ]
 ```
 
+### Working with Query Builder
+
+#### Getting
+
+```php
+// Example of usage through DI-container
+// Container automatically resolves QueryBuilder dependencies, because they are was bounded in public/index.php
+$builder = $container->get(ForgeAxiom\Framecore\Database\Query\QueryBuilder::class);
+```
+
+#### Examples of using
+
+##### SELECT
+```php
+$users = $builder->from('users')
+                 ->select('id', 'name')
+                 ->where('status', '=', 'active')
+                 ->get();
+// SELECT id, name FROM users WHERE status = :where_status_0
+```
+
+##### WHERE
+```php
+$users = $builder->from('users')
+                 ->where('age', '>', 20)
+                 ->orWhere('status', '=', 'active')
+                 ->get();
+// SELECT * FROM users WHERE age > :where_age_0 OR status = :where_status_1
+```
+
+##### ORDER BY, LIMIT, OFFSET
+```php
+$recentPosts = $builder->from('posts')
+                       ->orderBy('created_at', 'DESC')
+                       ->limit(5)
+                       ->offset(10)
+                       ->get();
+// SELECT * FROM posts ORDER BY created_at DESC LIMIT 5 OFFSET 10
+```
+
+##### JOIN
+```php
+$postsWithAuthors = $builder->from('posts')
+                           ->join(tableName: 'users', callback: function(JoinClause $join) {
+                               $join->onColumn('posts.user_id', '=', 'users.id');
+                           }, alias: 'u1') // alias 'u1' for users
+                           ->select('posts.title', 'u1.name')
+                           ->get();
+// SELECT posts.title, u1.name FROM posts INNER JOIN users AS u1 ON posts.user_id = u1.id
+```
+
+##### INSERT / UPDATE / DELETE
+```php
+$isInserted = $builder->from('products')->insert(['name' => 'New Widget', 'price' => 9.99]);
+$rowsAffected = $builder->from('products')->where('id', '=', 1)->update(['price' => 12.99]);
+$isDeleted = $builder->from('products')->where('id', '=', 5)->delete();
+```
+
 # Русский
 
 ## Что это?
-Легковесный фреймворк, созданный с нуля, для изучения фундаментальных принципов, лежащих в основе современных PHP-фреймворков, таких как Laravel. 🚀
+Легковесный фреймворк, созданный с нуля, для изучения фундаментальных принципов, лежащих в основе современных PHP-фреймворков, по типу
+Laravel. 🚀
 
 ## О проекте
 Этот проект — это глубокое погружение в архитектуру современных веб-фреймворков. Путем создания микро-фреймворка с нуля, с помощью этого проекта, я исследую такие фундаментальные концепции, как:
@@ -408,4 +467,62 @@ $container->get(ClassName::class, true);
 return [
     Connection::class,
 ]
+```
+
+### Работа с Query Builder
+
+#### Получение
+
+```php
+// Пример получения через DI-container
+// Container автоматически разрешает зависимости QueryBuilder, благодаря приявязкам в public/index.php
+$builder = $container->get(ForgeAxiom\Framecore\Database\Query\QueryBuilder::class);
+```
+
+#### Примеры использования
+
+##### SELECT
+```php
+$users = $builder->from('users')
+                 ->select('id', 'name')
+                 ->where('status', '=', 'active')
+                 ->get();
+// SELECT id, name FROM users WHERE status = :where_status_0
+```
+
+##### WHERE
+```php
+$users = $builder->from('users')
+                 ->where('age', '>', 20)
+                 ->orWhere('status', '=', 'active')
+                 ->get();
+// SELECT * FROM users WHERE age > :where_age_0 OR status = :where_status_1
+```
+
+##### ORDER BY, LIMIT, OFFSET
+```php
+$recentPosts = $builder->from('posts')
+                       ->orderBy('created_at', 'DESC')
+                       ->limit(5)
+                       ->offset(10)
+                       ->get();
+// SELECT * FROM posts ORDER BY created_at DESC LIMIT 5 OFFSET 10
+```
+
+##### JOIN
+```php
+$postsWithAuthors = $builder->from('posts')
+                           ->join(tableName: 'users', callback: function(JoinClause $join) {
+                               $join->onColumn('posts.user_id', '=', 'users.id');
+                           }, alias: 'u1') // alias 'u1' for users
+                           ->select('posts.title', 'u1.name')
+                           ->get();
+// SELECT posts.title, u1.name FROM posts INNER JOIN users AS u1 ON posts.user_id = u1.id
+```
+
+##### INSERT / UPDATE / DELETE
+```php
+$isInserted = $builder->from('products')->insert(['name' => 'New Widget', 'price' => 9.99]);
+$rowsAffected = $builder->from('products')->where('id', '=', 1)->update(['price' => 12.99]);
+$isDeleted = $builder->from('products')->where('id', '=', 5)->delete();
 ```

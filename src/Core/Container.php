@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace ForgeAxiom\Framecore\Core;
 
-use ForgeAxiom\Framecore\Core\Binding;
 use Closure;
+use ForgeAxiom\Framecore\Exceptions\Container\NotBoundException;
+use ForgeAxiom\Framecore\Exceptions\Container\UnresolvableDependencyException;
 use ForgeAxiom\Framecore\Exceptions\FileNotExistsException;
 use ForgeAxiom\Framecore\Exceptions\InvalidConfigReturnException;
-use ForgeAxiom\Framecore\Exceptions\NotBoundException;
 use ForgeAxiom\Framecore\Exceptions\NotInstantiableException;
 use ForgeAxiom\Framecore\Exceptions\SignatureHasNoTypeSet;
-use ForgeAxiom\Framecore\Exceptions\UnresolvableDependencyException;
+use ReflectionClass;
+use ReflectionException;
+use ReflectionIntersectionType;
+use ReflectionUnionType;
 
 /**
  * Class assembler.
@@ -29,7 +32,8 @@ class Container
 
 
     /**
-     * @throws FileNotExistsException|InvalidConfigReturnException
+     * @throws FileNotExistsException If auto_singletons.php does not exist
+     * @throws InvalidConfigReturnException If auto_singletons.php does not return an array.
      */
     public function __construct()
     {
@@ -77,14 +81,14 @@ class Container
      *
      * @param class-string<TClass> $className requested Class by ClassName.
      * @param bool $autoResolving Use or not automatic resolving of not bound classes.
-     * 
+     *
      * @return TClass Instance of requested class.
-     * 
-     * @throws \ReflectionException If the class does not exist.
+     *
+     * @throws ReflectionException If the class does not exist.
      * @throws SignatureHasNoTypeSet If constructor has no parameter type set.
      * @throws NotInstantiableException If class abstract or interface.
      * @throws UnresolvableDependencyException If parameter type in constructor is a scalar, union, or intersection.
-     * @throws NotBoundException If autoResolving was off and requested class was not bounded 
+     * @throws NotBoundException If auto resolving was off and requested class was not bounded.
      */ 
     public function get(string $className, bool $autoResolving = true): object
     {
@@ -119,14 +123,14 @@ class Container
      * 
      * @return TClass Instance of requested class.
      * 
-     * @throws \ReflectionException If the class does not exist.
+     * @throws ReflectionException If the class does not exist.
      * @throws SignatureHasNoTypeSet If constructor has no parameter type set.
      * @throws NotInstantiableException If class abstract or interface.
-     * @throws UnresolvableDependencyException If parameter type scalar, union or intersection in constructor.
+     * @throws UnresolvableDependencyException|NotBoundException If parameter type scalar, union or intersection in constructor or if auto resolving was off and requested class was not bounded.
      */
     private function getWithReflection(string $className): object
     {      
-        $reflectionClass = new \ReflectionClass($className);
+        $reflectionClass = new ReflectionClass($className);
 
         if (!$reflectionClass->isInstantiable()) {
             throw new NotInstantiableException("{$className} is not instantiable");
@@ -158,9 +162,9 @@ class Container
             $type = $reflectionParameter->getType();
             if ($type->isBuiltin()) {
                 throw new UnresolvableDependencyException("Scalar types not supported in constructor. From: {$className}");
-            } elseif ($type instanceof \ReflectionUnionType) {
+            } elseif ($type instanceof ReflectionUnionType) {
                 throw new UnresolvableDependencyException("Union types are not support in constructor. From: {$className}");
-            } elseif ($type instanceof \ReflectionIntersectionType) {
+            } elseif ($type instanceof ReflectionIntersectionType) {
                 throw new UnresolvableDependencyException("Intersection types are not support in constructor. From: {$className}");
             }
 
@@ -186,11 +190,11 @@ class Container
             throw new FileNotExistsException('auto_singletons.php does not exist, searching:' . $configPath);
         }
 
-        $singletones = require_once $configPath;
-        if (!is_array($singletones)) {
+        $singletons = require_once $configPath;
+        if (!is_array($singletons)) {
             throw new InvalidConfigReturnException('auto_singletons.php does not return an array, searching: ' . $configPath);
         }
 
-        $this->reflectionSingletons = $singletones;
+        $this->reflectionSingletons = $singletons;
     }
 }

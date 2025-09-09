@@ -17,5 +17,7 @@
             "email": "ForgeAxiom@proton.me"
         }
     ],
-    "require": {}
+    "require": {
+      "ext-pdo": "*"
+    }
 }
