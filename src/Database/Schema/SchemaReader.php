@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
 
-namespace App\Database\Schema;
+namespace ForgeAxiom\Framecore\Database\Schema;
 
-use App\Database\Connection\Connection;
+use ForgeAxiom\Framecore\Database\Connection\Connection;
 use InvalidArgumentException;
 
 final class SchemaReader

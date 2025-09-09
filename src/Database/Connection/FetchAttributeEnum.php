@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace App\Database\Connection; 
+namespace ForgeAxiom\Framecore\Database\Connection;
 
 enum FetchAttributeEnum
 {

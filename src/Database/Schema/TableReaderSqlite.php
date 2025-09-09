@@ -1,9 +1,10 @@
 <?php
 declare(strict_types=1);
 
-namespace App\Database\Schema;
+namespace ForgeAxiom\Framecore\Database\Schema;
 
-use App\Database\Connection\Connection;
+use ForgeAxiom\Framecore\Database\Connection\Connection;
+use ForgeAxiom\Framecore\Database\Schema\TableReaderInterface;
 
 class TableReaderSqlite implements TableReaderInterface
 {
@@ -14,7 +15,7 @@ class TableReaderSqlite implements TableReaderInterface
     public function getTableNames(): array
     {
         $statement = $this->connection->prepare(
-            'SELECT name FROM sqlite_master WHERE type="table" AND name NOT LIKE "sqlite_%"'
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';"
         );
 
         $statement->execute([]);

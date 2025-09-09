@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace App\Database\Connection;
+namespace ForgeAxiom\Framecore\Database\Connection;
 
 use PDO;
 
@@ -13,7 +13,7 @@ final class Connection
     public readonly PDO $pdo;
 
     /**
-     * @param string $dbPath Where database located.
+     * @param string $pdoDbConnection PDO database connection string.
      */
     public function __construct(string $pdoDbConnection)
     {

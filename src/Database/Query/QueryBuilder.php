@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Database\Query; use App\Database\Connection\Connection;
-use App\Database\Schema\SchemaReader;
+namespace ForgeAxiom\Framecore\Database\Query; 
+use ForgeAxiom\Framecore\Database\Connection\Connection;
+use ForgeAxiom\Framecore\Database\Schema\SchemaReader;
 use ForgeAxiom\Framecore\Helpers\Formatter;
 use InvalidArgumentException;
 

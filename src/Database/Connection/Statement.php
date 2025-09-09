@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Database\Connection;
+namespace ForgeAxiom\Framecore\Database\Connection;
 
-use PDOStatement;
 use PDO;
+use PDOStatement;
 
 final class Statement
 {
