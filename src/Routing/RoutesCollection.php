@@ -60,9 +60,10 @@ final class RoutesCollection
      */
     private function getAllRoutes(): array
     {
-        $this->failIfFileNotExists(__DIR__ . '/../../app/Routes/routes.php');
+        $routesPath = __DIR__ . '/../../config/routes.php';
+        $this->failIfFileNotExists($routesPath);
         
-        $routes = require_once __DIR__ . '/../../app/Routes/routes.php';
+        $routes = require_once $routesPath;
 
         $this->failIfRoutesNotInHttpMethod($routes);
         $this->failIfKeysNotUniq($routes);
@@ -74,7 +75,7 @@ final class RoutesCollection
     private function failIfFileNotExists(string $path): void
     {
         if (!file_exists($path)) {
-            throw new FileNotExistsException("File app/Routes/routes.php does not exists. Tried: '$path'");
+            throw new FileNotExistsException("File config/routes.php does not exists. Tried: '$path'");
         }
     }
 
@@ -130,18 +131,45 @@ final class RoutesCollection
         $result = [];
        
         foreach ($allRoutes as $httpMethod => $routesByMethod) {
-            if (!is_array($routesByMethod[0])) {
-                throw new InvalidConfigReturnException(sprintf(
-                    'Invalid routes config format. %s => value must be array which contains routes. Now value is route.',
-                    $httpMethod 
-                ));
+            if ($routesByMethod === []) {
+                $this->throwInvalidConfigReturn($httpMethod, null);
             }
         
             foreach($routesByMethod as $route) {
-                $result[$httpMethod][] = array_combine(self::$keys, $route);
+                if (is_object($route)) {
+                    $this->throwInvalidConfigReturn($httpMethod, $route);
+                } elseif (!is_array($route)) {
+                    $this->throwInvalidConfigReturn($httpMethod, $route);
+                } 
+
+                try {
+                    $result[$httpMethod][] = array_combine(self::$keys, $route);
+                } catch (\Throwable $th) {
+                    $this->throwInvalidConfigReturn($httpMethod, $route);
+                    throw $th;
+                }
             }
         }
         
         return $result;
+    }
+
+    private function throwInvalidConfigReturn(string $httpMethod, mixed $route)
+    {
+        $type = gettype($route);
+
+        if ($type === 'object') {
+            $route = get_class($route);
+        } elseif ($type === 'array') {
+            $route = "['" . implode("', '", $route) . "']";
+        }
+
+        throw new InvalidConfigReturnException(sprintf(
+            'Invalid routes config format. %s => value must be an array which contains routes like [0=>%s, 1=>%s, 2=>%s]. Now value is: "%s", type: "%s".',
+            $httpMethod,
+            self::$keys[0], self::$keys[1], self::$keys[2],
+            $route,
+            $type,
+        ));
     }
 }

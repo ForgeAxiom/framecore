@@ -49,8 +49,9 @@ php -S localhost:8080 -t public
 
 ### Defining Routes
 
+Routes defineds in config/routes.php
 ```php
-//app/Routes/routes.php
+// config/routes.php
 return [
     'get' => [
         ['/', ExampleController::class, 'index']
@@ -251,9 +252,9 @@ php -S localhost:8080 -t public
 
 ### Определение Маршрутов
 
-Маршруты определяются в файле `app/Routes/routes.php`, который должен возвращать массив:
+Маршруты определяются в файле `config/routes.php`, который должен возвращать массив:
 ```php
-//app/Routes/routes.php
+// config/routes.php
 return [
     'get' => [
         ['/', ExampleController::class, 'index']
