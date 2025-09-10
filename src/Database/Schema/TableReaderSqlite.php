@@ -4,14 +4,19 @@ declare(strict_types=1);
 namespace ForgeAxiom\Framecore\Database\Schema;
 
 use ForgeAxiom\Framecore\Database\Connection\Connection;
-use ForgeAxiom\Framecore\Database\Schema\TableReaderInterface;
 
-class TableReaderSqlite implements TableReaderInterface
+/** Responsible for reading table from SQLite database. */
+readonly class TableReaderSqlite implements TableReaderInterface
 {
     public function __construct(
-        private readonly Connection $connection
+        private Connection $connection
     ){}
 
+    /**
+     * Uploads table names from database.
+     *
+     * @throws \PDOException If failure.
+     */
     public function getTableNames(): array
     {
         $statement = $this->connection->prepare(

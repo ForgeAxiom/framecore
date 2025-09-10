@@ -5,17 +5,23 @@ declare(strict_types=1);
 namespace ForgeAxiom\Framecore\Database\Query; 
 use ForgeAxiom\Framecore\Database\Connection\Connection;
 use ForgeAxiom\Framecore\Database\Schema\SchemaReader;
+use ForgeAxiom\Framecore\Exceptions\DatabaseTableException;
+use ForgeAxiom\Framecore\Exceptions\NotInWhiteListException;
 use ForgeAxiom\Framecore\Helpers\Formatter;
-use InvalidArgumentException;
+use PDOException;
 
 /** Service Class. Responsible for building query. */
 final class QueryBuilder
 {
-    const WHERE_OPERATORS = ['=', '<>', '!=', '<', '>', '<=', '>=', 'LIKE'];
+    private const WHERE_OPERATORS = ['=', '<>', '!=', '<', '>', '<=', '>=', 'LIKE'];
 
     private array $queryParts = [];
     private array $bindings = [];
 
+    /**
+     * @param Connection $connection
+     * @param SchemaReader $schemaReader
+     */
     public function __construct(
         private readonly Connection $connection,
         private readonly SchemaReader $schemaReader
@@ -27,8 +33,8 @@ final class QueryBuilder
      * Finals query and returns all query result.
      * 
      * @return array Query result data. 
-     * 
-     * @throws \PDOException If PDO failure.
+     *
+     * @throws PDOException On database-level failure.
      */
     public function get(): array
     {
@@ -39,8 +45,8 @@ final class QueryBuilder
      * Finals query and returns first query result.
      * 
      * @return array|false Query result data or false if not found. 
-     * 
-     * @throws \PDOException If PDO failure.
+     *
+     * @throws PDOException On database-level failure.
      */
     public function first(): array | false
     {
@@ -55,6 +61,8 @@ final class QueryBuilder
      * @param array|string $columns Selectable columns from table.
      * 
      * @return self For subsequent build of queries.
+     *
+     * @throws DatabaseTableException If column from table does not exist or table does not exist or unavailable.
      */
     public function select(string $tableName, array | string $columns = '*'): self
     {
@@ -65,17 +73,20 @@ final class QueryBuilder
         $this->queryParts['from'] = $tableName;
 
         return $this;   
-    }   
+    }
 
     /**
-     * Adds a basic where clause to the query.
-     * 
+     * Adds a basic "where" clause to the query.
+     *
      * @param string $column Column which applies condition.
      * @param string $operator Condition compare operator(=,<,like...).
      * @param mixed $value Value for binding.
      * @param string $logicalOperator Logical operator for binding with previous clauses ('AND' or 'OR').
-     * 
+     *
      * @return self For subsequent build of queries.
+     *
+     * @throws NotInWhiteListException If value not found in whitelist.
+     * @throws DatabaseTableException DatabaseTableException If column from table does not exist or table does not exist or unavailable.
      */
     public function where(
         string $column, 
@@ -103,12 +114,55 @@ final class QueryBuilder
     }
 
     /**
+     * Adds a basic "where" clause to the query with logical operator OR.
+     *
+     * @param string $column Column which applies condition.
+     * @param string $operator Condition compare operator(=,<,like...).
+     * @param mixed $value Value for binding.
+     *
+     * @return self For subsequent build of queries.
+     *
+     * @throws NotInWhiteListException If value not found in whitelist.
+     * @throws DatabaseTableException DatabaseTableException If column from table does not exist or table does not exist or unavailable.
+     */
+    public function orWhere(
+        string $column,
+        string $operator,
+        mixed $value,
+    ): self {
+        return $this->where($column, $operator, $value, 'OR');
+    }
+
+    /**
+     * Adds a basic "where" clause to the query with logical operator AND.
+     *
+     * @param string $column Column which applies condition.
+     * @param string $operator Condition compare operator(=,<,like...).
+     * @param mixed $value Value for binding.
+     *
+     * @return self For subsequent build of queries.
+     *
+     * @throws NotInWhiteListException If value not found in whitelist.
+     * @throws DatabaseTableException DatabaseTableException If column from table does not exist or table does not exist or unavailable.
+     */
+    public function andWhere(
+        string $column,
+        string $operator,
+        mixed $value,
+    ): self {
+        return $this->where($column, $operator, $value);
+    }
+
+    /**
      * Adds an "order by" clause to the query.
-     * 
+     *
      * @param string $column Column to order by.
      * @param string $direction Direction of sort ('ASC' or 'DESC').
-     * 
+     *
      * @return self
+     *
+     * @throws NotInWhiteListException If value not found in whitelist.
+     * @throws DatabaseTableException DatabaseTableException If column from table does not exist or table does not exist or unavailable.
      */
     public function orderBy(string $column, string $direction = 'ASC'): self 
     {
@@ -143,6 +197,12 @@ final class QueryBuilder
         return $this;    
     }
 
+    /**
+     * @param string $fetchMethod
+     * @return array|false
+     *
+     * @throws PDOException If the SQL statement is invalid or cannot be prepared.
+     */
     private function runQuery(string $fetchMethod): array | false
     {
         $sql = $this->toSql();
@@ -152,7 +212,7 @@ final class QueryBuilder
         return $statement->$fetchMethod();
     }
     
-    public function toSql(): string
+    private function toSql(): string
     {
         $this->bindings = []; // Сбрасываем биндинги перед сборкой
 
@@ -229,10 +289,13 @@ final class QueryBuilder
         return 'OFFSET ' . (int)$this->queryParts['offset'];
     }
 
-    private function inArrayOrFail(string $value, array $whiteList): void 
+    /**
+     * @throws NotInWhiteListException If value not found in whitelist.
+     */
+    private function inArrayOrFail(string $value, array $whiteList): void
     {
         if (!in_array($value, $whiteList)) {
-            throw new InvalidArgumentException("Недопустимое значение '{$value}'. Доступно: " . implode(', ', $whiteList));
+            throw new NotInWhiteListException("Unavailable value: '{$value}'. Available: " . implode(', ', $whiteList));
         }
     }
 

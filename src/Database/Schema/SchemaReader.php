@@ -4,8 +4,10 @@ declare(strict_types=1);
 namespace ForgeAxiom\Framecore\Database\Schema;
 
 use ForgeAxiom\Framecore\Database\Connection\Connection;
-use InvalidArgumentException;
+use ForgeAxiom\Framecore\Exceptions\DatabaseTableException;
+use PDOException;
 
+/** Responsible for reading database schema. */
 final class SchemaReader
 {
     private static array $cache = [];
@@ -15,6 +17,11 @@ final class SchemaReader
         private readonly TableReaderInterface $tablesReader
     ) {}
 
+    /**
+     * Uploads table names from database.
+     *
+     * @throws PDOException On database-level failure.
+     */
     public function getTableNames(): array
     {
         $cacheKey = 'table_names';
@@ -24,6 +31,11 @@ final class SchemaReader
         return self::$cache[$cacheKey] = $this->tablesReader->getTableNames();
     }
 
+    /**
+     * Uploads column names from passed table.
+     *
+     * @throws DatabaseTableException If table does not exist or unavailable.
+     */
     public function getColumnNames(string $tableName): array
     {
         $this->validateTableName($tableName);
@@ -35,7 +47,7 @@ final class SchemaReader
 
         $sql = "PRAGMA table_info({$tableName});";
         $statement = $this->connection->prepare($sql);
-        $statement->execute([]);
+        $statement->execute();
 
         $rawColumns = $statement->fetchAll();
         $columnNames = array_map(fn($item) => $item['name'], $rawColumns);
@@ -48,14 +60,22 @@ final class SchemaReader
         self::$cache = [];    
     }
 
+    /**
+     * @throws DatabaseTableException If table does not exist or unavailable.
+     */
     private function validateTableName(string $tableName): void
     {
         $whiteListTables = $this->getTableNames();
         if (!in_array($tableName, $whiteListTables)) {
-            throw new InvalidArgumentException("Таблица '{$tableName}' не существует или недоступна.");
+            throw new DatabaseTableException("Table '{$tableName}' does not exist or unavailable.");
         }
     }
 
+    /**
+     * Validates the existence of passed table and columns.
+     *
+     * @throws DatabaseTableException If column from table does not exist or table does not exist or unavailable.
+     */
     public function validOrFailColumnsAndTable(array $columns, string $tableName): void
     {
         $this->validateTableName($tableName);
@@ -65,7 +85,7 @@ final class SchemaReader
         $whiteListColumns = $this->getColumnNames($tableName);
         foreach ($columns as $column) {
             if (!in_array($column, $whiteListColumns)) {
-                 throw new InvalidArgumentException("Колонка '{$column}' не существует в таблице '{$tableName}'.");
+                 throw new DatabaseTableException("Column '{$column}' does not exist in table '{$tableName}'.");
             }
         }
     }

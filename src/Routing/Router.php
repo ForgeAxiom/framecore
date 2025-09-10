@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace ForgeAxiom\Framecore\Routing;
 
 use ForgeAxiom\Framecore\Core\Container;
-use ForgeAxiom\Framecore\Routing\Controller;
-use ForgeAxiom\Framecore\Routing\Response;
+use ForgeAxiom\Framecore\Exceptions\HttpException;
+use ForgeAxiom\Framecore\Exceptions\NotBoundException;
+use ForgeAxiom\Framecore\Exceptions\NotInstantiableException;
+use ForgeAxiom\Framecore\Exceptions\SignatureHasNoTypeSet;
+use ForgeAxiom\Framecore\Exceptions\UnresolvableDependencyException;
 use ForgeAxiom\Framecore\View\View;
-use \Exception;
 use ForgeAxiom\Framecore\Exceptions\InvalidConfigReturnException;
+use ReflectionException;
 
 /** 
  * Service. 
@@ -34,15 +37,21 @@ class Router
     }
 
     /**
-     * 
+     *
      * Handles HTTP request by routing it to the appropriate controller.
-     * 
+     *
      * Dispatches HTTP request to appropriate controller method if match with config found.
      * Otherwise, generates a 404 Not Found Response.
-     * 
+     *
      * @return Response The final HTTP response.
-     * 
+     *
      * @throws InvalidConfigReturnException If a controller defined in routes configuration is not a valid instance of Controller.
+     * @throws HttpException If http method not get, post, put or delete.
+     * @throws ReflectionException If the class does not exist.
+     * @throws SignatureHasNoTypeSet If constructor has no parameter type set.
+     * @throws NotInstantiableException If class abstract or interface.
+     * @throws UnresolvableDependencyException If parameter type in constructor is a scalar, union, or intersection.
+     * @throws NotBoundException If auto resolving was off and requested class was not bounded.
      */
     public function handleUri(string $requestUri, string $httpMethod): Response 
     {
@@ -68,18 +77,17 @@ class Router
 
                     return $this->handleControllerResponse($controllerResponse);
                 } else {
-                    throw new InvalidConfigReturnException(
-                        'Only instanceof ForgeAxiom\Framecore\Routing\Controller, given: ' . $controllerClassName
-                    );
+                    throw new InvalidConfigReturnException(sprintf(
+                        "Only instance of %s, given: %s",
+                        Controller::class,
+                        $controllerClassName
+                    ));
                 }
-                break;
             } 
         }
 
         // If request uri NOT matches with route uri
-        $response = Response::notFound();
-
-        return $response;
+        return Response::notFound();
     }
 
     /**
@@ -92,29 +100,19 @@ class Router
      *          controllerMethod: string
      *      }
      * > The array of routes with appropriate http method.
-     * 
+     *
+     * @throws HttpException If http method not get, post, put or delete.
      */
     private function getRoutesByRequestMethod($httpMethod): array
     {
         $httpMethod = trim(strtolower($httpMethod));
-        switch ($httpMethod) {
-            case 'get':
-                $routesByRequestMethod = isset($this->routes['get']) ? $this->routes['get'] : [];
-                break;
-            case 'post':
-                $routesByRequestMethod = isset($this->routes['post']) ? $this->routes['post'] : [];
-                break;
-            case 'put':
-                $routesByRequestMethod = isset($this->routes['put']) ? $this->routes['put'] : [];
-                break;
-            case 'delete':
-                $routesByRequestMethod = isset($this->routes['delete']) ? $this->routes['delete'] : [];
-                break;
-            default:
-                throw new Exception("Error Processing Request.");
-        }
-
-        return $routesByRequestMethod;
+        return match ($httpMethod) {
+            'get' => $this->routes['get'] ?? [],
+            'post' => $this->routes['post'] ?? [],
+            'put' => $this->routes['put'] ?? [],
+            'delete' => $this->routes['delete'] ?? [],
+            default => throw new HttpException("Error Processing Request. Wrong HTTP Method: {$httpMethod}"),
+        };
     }
 
     /**
@@ -186,22 +184,21 @@ class Router
      * 
      * @return Response The Final Response.
      */
-    private function handleControllerResponse(Response | View | null $controllerResponse) {
-        if ($controllerResponse === null) {
-            return new Response(200);
-
-        } elseif ($controllerResponse instanceof Response) {
+    private function handleControllerResponse(Response | View | null $controllerResponse): Response
+    {
+        if ($controllerResponse instanceof Response) {
             $responseCode = $controllerResponse->httpResponseCode;
             if ($responseCode === 404) {
                 $view = $controllerResponse->view;
                 
                 return Response::notFound($view);
-            } 
-
-            return $controllerResponse; 
+            }
+            return $controllerResponse;
 
         } elseif ($controllerResponse instanceof View) {
             return new Response(200, $controllerResponse);
-        } 
+        }
+
+        return new Response(200);
     }
 }

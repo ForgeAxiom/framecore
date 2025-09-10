@@ -4,13 +4,14 @@ declare(strict_types=1);
 namespace ForgeAxiom\Framecore\Database\Connection;
 
 use PDO;
+use PDOException;
 
 /**
- * Statement service, responsible for PDO DB connection
+ * Statement service, responsible for PDO database connection.
  */
-final class Connection
+final readonly class Connection
 {
-    public readonly PDO $pdo;
+    public PDO $pdo;
 
     /**
      * @param string $pdoDbConnection PDO database connection string.
@@ -29,7 +30,7 @@ final class Connection
      * @param string $sql The SQL statement to prepare.
      *
      * @return Statement Returns a PDOStatement object or throws an exception on failure.
-     * @throws \PDOException If the SQL statement is invalid or cannot be prepared.
+     * @throws PDOException If the SQL statement is invalid or cannot be prepared.
      */
     public function prepare(string $sql): Statement
     {
