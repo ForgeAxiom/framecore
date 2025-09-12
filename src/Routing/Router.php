@@ -43,6 +43,9 @@ class Router
      * Dispatches HTTP request to appropriate controller method if match with config found.
      * Otherwise, generates a 404 Not Found Response.
      *
+     * @param string $requestUri Requested uri.
+     * @param string $httpMethod Http method.
+     * 
      * @return Response The final HTTP response.
      *
      * @throws InvalidConfigReturnException If a controller defined in routes configuration is not a valid instance of Controller.
