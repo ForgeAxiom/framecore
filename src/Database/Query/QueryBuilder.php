@@ -8,7 +8,9 @@ use ForgeAxiom\Framecore\Database\Schema\SchemaReader;
 use ForgeAxiom\Framecore\Exceptions\DatabaseTableException;
 use ForgeAxiom\Framecore\Exceptions\NotInWhiteListException;
 use ForgeAxiom\Framecore\Helpers\Formatter;
+use PDO;
 use PDOException;
+use function ForgeAxiom\Framecore\Helpers\dd;
 
 /** Service Class. Responsible for building query. */
 final class QueryBuilder
@@ -195,6 +197,27 @@ final class QueryBuilder
     {
         $this->queryParts['offset'] = $count;
         return $this;    
+    }
+
+    /**
+     * @throws DatabaseTableException
+     */
+    public function insert(string $tableName, array $data)
+    {
+        $columns = array_keys($data);
+        $this->schemaReader->validOrFailColumnsAndTable($columns, $tableName);
+
+        $columnsSql = implode(', ', $columns);
+        $columnsValuePlaceholdersSql = implode(', ', array_map(fn(string $column) => ":$column", $columns));
+
+        $sql = <<<SQL
+        INSERT INTO {$tableName} ({$columnsSql}) 
+        VALUES ({$columnsValuePlaceholdersSql});
+        SQL;
+
+        $statement = $this->connection->prepare($sql);
+        $statement->execute($data);
+        return $this->connection->lastInsertId();
     }
 
     /**

@@ -29,7 +29,8 @@ class Container
 
 
     /**
-     * @throws FileNotExistsException|InvalidConfigReturnException
+     * @throws FileNotExistsException If auto_singletons.php does not exist
+     * @throws InvalidConfigReturnException If auto_singletons.php does not return an array.
      */
     public function __construct()
     {
@@ -122,7 +123,7 @@ class Container
      * @throws ReflectionException If the class does not exist.
      * @throws SignatureHasNoTypeSet If constructor has no parameter type set.
      * @throws NotInstantiableException If class abstract or interface.
-     * @throws UnresolvableDependencyException If parameter type scalar, union or intersection in constructor.
+     * @throws UnresolvableDependencyException|NotBoundException If parameter type scalar, union or intersection in constructor or if auto resolving was off and requested class was not bounded.
      */
     private function getWithReflection(string $className): object
     {      
@@ -186,11 +187,11 @@ class Container
             throw new FileNotExistsException('auto_singletons.php does not exist, searching:' . $configPath);
         }
 
-        $singletones = require_once $configPath;
-        if (!is_array($singletones)) {
+        $singletons = require_once $configPath;
+        if (!is_array($singletons)) {
             throw new InvalidConfigReturnException('auto_singletons.php does not return an array, searching: ' . $configPath);
         }
 
-        $this->reflectionSingletons = $singletones;
+        $this->reflectionSingletons = $singletons;
     }
 }
