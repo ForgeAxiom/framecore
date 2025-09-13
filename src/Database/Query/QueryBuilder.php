@@ -28,7 +28,7 @@ final class QueryBuilder
         private readonly Connection $connection,
         private readonly SchemaReader $schemaReader
     ) {
-        $this->clear(); // Инициализируем состояние
+        $this->clearState(); // Инициализируем состояние
     }
     
     /**
@@ -87,7 +87,7 @@ final class QueryBuilder
      *
      * @return self For subsequent build of queries.
      *
-     * @throws NotInWhiteListException If value not found in whitelist.
+     * @throws NotInWhiteListException If logical or where_operator is not valid.
      * @throws DatabaseTableException DatabaseTableException If column from table does not exist or table does not exist or unavailable.
      */
     public function where(
@@ -124,7 +124,7 @@ final class QueryBuilder
      *
      * @return self For subsequent build of queries.
      *
-     * @throws NotInWhiteListException If value not found in whitelist.
+     * @throws NotInWhiteListException If logical or where_operator is not valid.
      * @throws DatabaseTableException DatabaseTableException If column from table does not exist or table does not exist or unavailable.
      */
     public function orWhere(
@@ -144,7 +144,7 @@ final class QueryBuilder
      *
      * @return self For subsequent build of queries.
      *
-     * @throws NotInWhiteListException If value not found in whitelist.
+     * @throws NotInWhiteListException If logical or where_operator is not valid.
      * @throws DatabaseTableException DatabaseTableException If column from table does not exist or table does not exist or unavailable.
      */
     public function andWhere(
@@ -200,14 +200,23 @@ final class QueryBuilder
     }
 
     /**
-     * @throws DatabaseTableException
+     * Inserts passed data to new row in passed table.
+     *
+     * @param string $tableName Table name.
+     * @param array $data Associative array with keys of columns and inserting value.
+     *
+     * @return bool Returns true on success or false if failure.
+     *
+     * @throws DatabaseTableException If column from table does not exist or table does not exist or unavailable.
+     * @throws PDOException If the SQL statement is invalid or cannot be prepared or database-level failure.
      */
-    public function insert(string $tableName, array $data)
+    public function insert(string $tableName, array $data): bool
     {
         $columns = array_keys($data);
         $this->schemaReader->validOrFailColumnsAndTable($columns, $tableName);
 
         $columnsSql = implode(', ', $columns);
+
         $columnsValuePlaceholdersSql = implode(', ', array_map(fn(string $column) => ":$column", $columns));
 
         $sql = <<<SQL
@@ -216,7 +225,28 @@ final class QueryBuilder
         SQL;
 
         $statement = $this->connection->prepare($sql);
-        $statement->execute($data);
+
+        $this->clearState();
+        return $statement->execute($data);
+    }
+
+    /**
+     * Inserts passed data to new row in passed table and gives last inserted id.
+     *
+     * NOTE: The return value and behavior of this method may vary depending on the underlying database driver,
+     * especially for tables without an auto-incrementing primary key.
+     *
+     * @param string $tableName Table name.
+     * @param array $data Associative array with keys of columns and inserting value.
+     *
+     * @return string|false The ID of the last inserted row, or false if the driver does not support this capability.
+     *
+     * @throws DatabaseTableException If column from table does not exist or table does not exist or unavailable.
+     * @throws PDOException If the SQL statement is invalid or cannot be prepared or database-level failure.
+     */
+    public function insertAndGetLastId(string $tableName, array $data): string|false
+    {
+        $this->insert($tableName, $data);
         return $this->connection->lastInsertId();
     }
 
@@ -231,7 +261,7 @@ final class QueryBuilder
         $sql = $this->toSql();
         $statement = $this->connection->prepare($sql);
         $statement->execute($this->bindings);
-        $this->clear();
+        $this->clearState();
         return $statement->$fetchMethod();
     }
     
@@ -322,7 +352,7 @@ final class QueryBuilder
         }
     }
 
-    private function clear(): void
+    private function clearState(): void
     {
         $this->queryParts = [
             'select' => ['*'],

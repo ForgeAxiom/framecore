@@ -38,13 +38,16 @@ final readonly class Connection
     }
 
     /**
-     * Returns a last inserted id.
+     * Returns the ID of the last inserted row.
      *
-     * @return string|false If a sequence name was not specified for the name parameter, $connection->lastInsertId returns a string representing the row ID of the last row that was inserted into the database.
-     * If a sequence name was specified for the name parameter, $connection->lastInsertId returns a string representing the last value retrieved from the specified sequence object.
-     * If the PDO driver does not support this capability, $connection->lastInsertId triggers an IM001 SQLSTATE.
+     * NOTE: The return value and behavior of this method may vary
+     * depending on the underlying database driver, especially for tables
+     * without an auto-incrementing primary key.
      *
-     * @throws PDOException If the PDO driver does not support this capability, $connection->lastInsertId triggers an IM001 SQLSTATE.
+     * @param string|null $name Name of the sequence object from which the ID should be returned (driver-specific).
+     *
+     * @return string|false The ID of the last inserted row, or false if the driver does not support this capability.
+     * @throws PDOException On database-level failure.
      */
     public function lastInsertId(?string $name = null): string|false
     {
