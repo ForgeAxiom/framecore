@@ -6,6 +6,7 @@ namespace ForgeAxiom\Framecore\Database\Query;
 use ForgeAxiom\Framecore\Database\Connection\Connection;
 use ForgeAxiom\Framecore\Database\Schema\SchemaReader;
 use ForgeAxiom\Framecore\Exceptions\DatabaseTableException;
+use ForgeAxiom\Framecore\Exceptions\MissingWhereClauseException;
 use ForgeAxiom\Framecore\Exceptions\NotInWhiteListException;
 use ForgeAxiom\Framecore\Helpers\Formatter;
 use PDO;
@@ -88,7 +89,6 @@ final class QueryBuilder
      * @return self For subsequent build of queries.
      *
      * @throws NotInWhiteListException If logical or where_operator is not valid.
-     * @throws DatabaseTableException DatabaseTableException If column from table does not exist or table does not exist or unavailable.
      */
     public function where(
         string $column, 
@@ -101,9 +101,6 @@ final class QueryBuilder
 
         $operator = strtoupper($operator);
         $this->inArrayOrFail($operator, self::WHERE_OPERATORS);
-     
-        $tableName = $this->queryParts['from'];
-        $this->schemaReader->validOrFailColumnsAndTable([$column], $tableName);
 
         $this->queryParts['wheres'][] = [
             'column' => $column, 
@@ -125,7 +122,6 @@ final class QueryBuilder
      * @return self For subsequent build of queries.
      *
      * @throws NotInWhiteListException If logical or where_operator is not valid.
-     * @throws DatabaseTableException DatabaseTableException If column from table does not exist or table does not exist or unavailable.
      */
     public function orWhere(
         string $column,
@@ -145,7 +141,6 @@ final class QueryBuilder
      * @return self For subsequent build of queries.
      *
      * @throws NotInWhiteListException If logical or where_operator is not valid.
-     * @throws DatabaseTableException DatabaseTableException If column from table does not exist or table does not exist or unavailable.
      */
     public function andWhere(
         string $column,
@@ -216,8 +211,7 @@ final class QueryBuilder
         $this->schemaReader->validOrFailColumnsAndTable($columns, $tableName);
 
         $columnsSql = implode(', ', $columns);
-
-        $columnsValuePlaceholdersSql = implode(', ', array_map(fn(string $column) => ":$column", $columns));
+        $columnsValuePlaceholdersSql = implode(', ', array_map(fn(string $column) => ":$column", $columns));;
 
         $sql = <<<SQL
         INSERT INTO {$tableName} ({$columnsSql}) 
@@ -248,6 +242,50 @@ final class QueryBuilder
     {
         $this->insert($tableName, $data);
         return $this->connection->lastInsertId();
+    }
+
+    /**
+     * Updates row or rows in table based on previous "where" clauses.
+     *
+     * @throws DatabaseTableException If table does not exist or unavailable.
+     * @throws PDOException If the SQL statement is invalid or cannot be prepared. Or if database-level failure.
+     * @throws MissingWhereClauseException If where clause was not used.
+     */
+    public function update(string $tableName, array $data): bool
+    {
+        $columns = array_keys($data);
+        $this->schemaReader->validOrFailColumnsAndTable($columns, $tableName);
+
+        $setSql = 'SET ';
+        foreach ($data as $column => $value) {
+            $setSql .= "{$column} = :{$column}, ";
+        }
+        $setSql = rtrim($setSql, ', ');
+
+        $whereSql = $this->makeWhereOrFailIfEmpty();
+
+        $sql = <<<SQL
+        UPDATE {$tableName}
+        {$setSql}
+        {$whereSql};
+        SQL;
+
+        $statement = $this->connection->prepare($sql);
+        $result = $statement->execute(array_merge($data, $this->bindings));
+        $this->clearState();
+        return $result;
+    }
+
+    /**
+     * @throws MissingWhereClauseException If "where" clause was not used.
+     */
+    private function makeWhereOrFailIfEmpty(): string
+    {
+        $whereSql = $this->makeWhere();
+        if ($whereSql === '') {
+            throw new MissingWhereClauseException('"Where" clause was not used.');
+        }
+        return $whereSql;
     }
 
     /**
